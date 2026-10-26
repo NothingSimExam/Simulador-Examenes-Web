@@ -28,6 +28,178 @@
     <!-- KaTeX para Formulas Matemáticas -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+
+    <!-- LÓGICA JAVASCRIPT CARGADA ANTES DE LA VISTA -->
+    <script>
+        const sampleQuestions = [
+            {
+                subject: 'Calculo',
+                question: "Calcule el límite: $$\\lim_{x \\to 0} \\frac{\\sin(x)}{x}$$",
+                options: ["0", "1", "Infinito", "No existe"],
+                correct: 1
+            },
+            {
+                subject: 'Calculo',
+                question: "¿Cuál es la derivada de $f(x) = x^3 - 4x + 7$?",
+                options: ["$3x^2 - 4$", "$3x^2 - 4x$", "$x^2 - 4$", "$3x - 4$"],
+                correct: 0
+            },
+            {
+                subject: 'Fisica',
+                question: "Según la segunda ley de Newton, la fuerza es directamente proporcional a:",
+                options: ["La velocidad", "La aceleración", "La posición", "El tiempo"],
+                correct: 1
+            },
+            {
+                subject: 'Algebra',
+                question: "¿Cuál es el determinante de una matriz de $2 \\times 2$ con filas $[a, b]$ y $[c, d]$?",
+                options: ["$ad + bc$", "$ab - cd$", "$ad - bc$", "$a + d - b - c$"],
+                correct: 2
+            }
+        ];
+
+        let selectedSubject = 'General';
+        let gameMode = 'exam';
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let timerInterval = null;
+        let timeLeft = 45;
+
+        document.addEventListener("DOMContentLoaded", () => {
+            loadStats();
+            renderKaTeX();
+        });
+
+        function selectSubject(subject, element) {
+            selectedSubject = subject;
+            document.querySelectorAll('.subject-card').forEach(card => {
+                card.classList.remove('border-brand-500', 'ring-2', 'ring-brand-500');
+            });
+            element.classList.add('border-brand-500', 'ring-2', 'ring-brand-500');
+        }
+
+        function updateModeSelection() {
+            const checkedRadio = document.querySelector('input[name="gameMode"]:checked');
+            if (checkedRadio) gameMode = checkedRadio.value;
+        }
+
+        function showDashboard() {
+            clearInterval(timerInterval);
+            document.getElementById('simulatorSection').classList.add('hidden');
+            document.getElementById('dashboardSection').classList.remove('hidden');
+            loadStats();
+        }
+
+        function startExam() {
+            updateModeSelection();
+            document.getElementById('dashboardSection').classList.add('hidden');
+            document.getElementById('simulatorSection').classList.remove('hidden');
+            document.getElementById('subjectBadge').innerText = selectedSubject;
+            
+            currentQuestionIndex = 0;
+            score = 0;
+            loadQuestion();
+        }
+
+        function loadQuestion() {
+            const q = sampleQuestions[currentQuestionIndex % sampleQuestions.length];
+            document.getElementById('questionProgress').innerText = `Pregunta ${currentQuestionIndex + 1} de 5`;
+            document.getElementById('scoreTracker').innerText = `Puntuación: ${score}`;
+            document.getElementById('questionText').innerHTML = q.question;
+
+            const container = document.getElementById('optionsContainer');
+            container.innerHTML = '';
+
+            q.options.forEach((opt, index) => {
+                const btn = document.createElement('button');
+                btn.className = "w-full text-left p-4 rounded-xl bg-slate-700/50 hover:bg-slate-700 border border-slate-600 transition-colors text-slate-200 font-medium flex items-center justify-between";
+                btn.innerHTML = `<span>${opt}</span><i class="fa-regular fa-circle text-slate-500"></i>`;
+                btn.onclick = () => checkAnswer(index, q.correct);
+                container.appendChild(btn);
+            });
+
+            renderKaTeX();
+
+            clearInterval(timerInterval);
+            const timerContainer = document.getElementById('timerContainer');
+            if (gameMode === 'exam') {
+                timerContainer.classList.remove('hidden');
+                timeLeft = 45;
+                document.getElementById('timer').innerText = `00:${timeLeft < 10 ? '0' : ''}${timeLeft}`;
+                timerInterval = setInterval(() => {
+                    timeLeft--;
+                    document.getElementById('timer').innerText = `00:${timeLeft < 10 ? '0' : ''}${timeLeft}`;
+                    if (timeLeft <= 0) {
+                        clearInterval(timerInterval);
+                        nextQuestion();
+                    }
+                }, 1000);
+            } else {
+                timerContainer.classList.add('hidden');
+            }
+        }
+
+        function checkAnswer(selected, correct) {
+            clearInterval(timerInterval);
+            if (selected === correct) {
+                score += 100;
+            }
+            nextQuestion();
+        }
+
+        function nextQuestion() {
+            currentQuestionIndex++;
+            if (currentQuestionIndex < 5) {
+                loadQuestion();
+            } else {
+                saveExamResult();
+                alert(`¡Examen finalizado! Tu puntuación fue de: ${score} puntos.`);
+                showDashboard();
+            }
+        }
+
+        function loadStats() {
+            const streak = localStorage.getItem('simu_streak') || 0;
+            const exams = localStorage.getItem('simu_exams') || 0;
+            const avg = localStorage.getItem('simu_avg') || 0;
+
+            document.getElementById('streakCount').innerText = `${streak} días`;
+            document.getElementById('dashboardStreak').innerText = `${streak} días`;
+            document.getElementById('totalExamsCount').innerText = exams;
+            document.getElementById('avgAccuracy').innerText = `${avg}%`;
+        }
+
+        function saveExamResult() {
+            let exams = parseInt(localStorage.getItem('simu_exams') || 0) + 1;
+            let streak = parseInt(localStorage.getItem('simu_streak') || 0);
+            
+            const lastDate = localStorage.getItem('simu_last_date');
+            const today = new Date().toDateString();
+            if (lastDate !== today) {
+                streak++;
+                localStorage.setItem('simu_last_date', today);
+            }
+
+            localStorage.setItem('simu_exams', exams);
+            localStorage.setItem('simu_streak', streak);
+            localStorage.setItem('simu_avg', Math.min(100, Math.round((score / 500) * 100)));
+        }
+
+        function renderKaTeX() {
+            if (window.renderMathInElement) {
+                renderMathInElement(document.body, {
+                    delimiters: [
+                        {left: '$$', right: '$$', display: true},
+                        {left: '$', right: '$', display: false}
+                    ]
+                });
+            }
+        }
+
+        function toggleTheme() {
+            document.documentElement.classList.toggle('dark');
+        }
+    </script>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen font-sans antialiased selection:bg-brand-500 selection:text-white flex flex-col">
 
@@ -220,4 +392,26 @@
             <div class="bg-slate-800 p-6 md:p-8 rounded-2xl border border-slate-700 shadow-xl space-y-6">
                 <div class="flex justify-between items-center text-xs text-slate-400 font-semibold uppercase">
                     <span id="questionProgress">Pregunta 1 de 5</span>
-                    <span id="score
+                    <span id="scoreTracker">Puntuación: 0</span>
+                </div>
+
+                <!-- Enunciado -->
+                <div id="questionText" class="text-lg md:text-xl font-medium text-slate-100">
+                    Cargando pregunta...
+                </div>
+
+                <!-- Opciones -->
+                <div id="optionsContainer" class="grid grid-cols-1 gap-3 pt-2">
+                    <!-- Opciones inyectadas dinámicamente con JS -->
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="text-center py-4 text-xs text-slate-500 border-t border-slate-800">
+        SimuExam Platform &copy; 2026 - Todos los derechos reservados.
+    </footer>
+
+</body>
+</html>
