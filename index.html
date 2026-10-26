@@ -28,8 +28,9 @@
     <!-- KaTeX para Formulas Matemáticas -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
 
-    <!-- LÓGICA JAVASCRIPT CARGADA ANTES DE LA VISTA -->
+    <!-- LÓGICA JAVASCRIPT -->
     <script>
         const sampleQuestions = [
             {
@@ -72,10 +73,13 @@
 
         function selectSubject(subject, element) {
             selectedSubject = subject;
-            document.querySelectorAll('.subject-card').forEach(card => {
-                card.classList.remove('border-brand-500', 'ring-2', 'ring-brand-500');
+            const card = element.closest('.subject-card');
+            document.querySelectorAll('.subject-card').forEach(c => {
+                c.classList.remove('border-brand-500', 'ring-2', 'ring-brand-500', 'bg-brand-500/10');
             });
-            element.classList.add('border-brand-500', 'ring-2', 'ring-brand-500');
+            if (card) {
+                card.classList.add('border-brand-500', 'ring-2', 'ring-brand-500', 'bg-brand-500/10');
+            }
         }
 
         function updateModeSelection() {
@@ -186,18 +190,27 @@
         }
 
         function renderKaTeX() {
-            if (window.renderMathInElement) {
-                renderMathInElement(document.body, {
-                    delimiters: [
-                        {left: '$$', right: '$$', display: true},
-                        {left: '$', right: '$', display: false}
-                    ]
-                });
-            }
+            setTimeout(() => {
+                if (window.renderMathInElement) {
+                    renderMathInElement(document.body, {
+                        delimiters: [
+                            {left: '$$', right: '$$', display: true},
+                            {left: '$', right: '$', display: false}
+                        ]
+                    });
+                }
+            }, 50);
         }
 
         function toggleTheme() {
-            document.documentElement.classList.toggle('dark');
+            const html = document.documentElement;
+            html.classList.toggle('dark');
+            const icon = document.getElementById('themeIcon');
+            if (html.classList.contains('dark')) {
+                icon.className = "fa-solid fa-sun text-amber-400";
+            } else {
+                icon.className = "fa-solid fa-moon text-slate-700";
+            }
         }
     </script>
 </head>
@@ -223,7 +236,7 @@
                     <span id="streakCount">0 días</span>
                 </div>
                 <button id="themeToggleBtn" onclick="toggleTheme()" class="p-2 rounded-lg bg-slate-700/50 hover:bg-slate-700 text-slate-300 transition-colors">
-                    <i class="fa-solid fa-sun text-amber-400"></i>
+                    <i id="themeIcon" class="fa-solid fa-sun text-amber-400"></i>
                 </button>
             </div>
         </div>
@@ -287,38 +300,38 @@
                     
                     <!-- Tarjeta: Cálculo -->
                     <div onclick="selectSubject('Calculo', this)" class="subject-card group bg-slate-800 p-5 rounded-xl border border-slate-700 hover:border-brand-500 cursor-pointer transition-all shadow-md hover:shadow-brand-500/10 active:scale-[0.98]">
-                        <div class="w-12 h-12 bg-blue-500/10 text-blue-400 rounded-lg flex items-center justify-center text-xl font-bold mb-4 group-hover:bg-brand-500 group-hover:text-white transition-colors">
+                        <div class="w-12 h-12 bg-blue-500/10 text-blue-400 rounded-lg flex items-center justify-center text-xl font-bold mb-4 group-hover:bg-brand-500 group-hover:text-white transition-colors pointer-events-none">
                             <i class="fa-solid fa-square-root-variable"></i>
                         </div>
-                        <h4 class="font-bold text-white group-hover:text-brand-400 transition-colors">Cálculo Diferencial</h4>
-                        <p class="text-xs text-slate-400 mt-1">Límites, derivadas, integrales y funciones.</p>
+                        <h4 class="font-bold text-white group-hover:text-brand-400 transition-colors pointer-events-none">Cálculo Diferencial</h4>
+                        <p class="text-xs text-slate-400 mt-1 pointer-events-none">Límites, derivadas, integrales y funciones.</p>
                     </div>
 
                     <!-- Tarjeta: Física -->
                     <div onclick="selectSubject('Fisica', this)" class="subject-card group bg-slate-800 p-5 rounded-xl border border-slate-700 hover:border-brand-500 cursor-pointer transition-all shadow-md hover:shadow-brand-500/10 active:scale-[0.98]">
-                        <div class="w-12 h-12 bg-purple-500/10 text-purple-400 rounded-lg flex items-center justify-center text-xl font-bold mb-4 group-hover:bg-brand-500 group-hover:text-white transition-colors">
+                        <div class="w-12 h-12 bg-purple-500/10 text-purple-400 rounded-lg flex items-center justify-center text-xl font-bold mb-4 group-hover:bg-brand-500 group-hover:text-white transition-colors pointer-events-none">
                             <i class="fa-solid fa-atom"></i>
                         </div>
-                        <h4 class="font-bold text-white group-hover:text-brand-400 transition-colors">Física General</h4>
-                        <p class="text-xs text-slate-400 mt-1">Mecánica, cinemática, energía y vectores.</p>
+                        <h4 class="font-bold text-white group-hover:text-brand-400 transition-colors pointer-events-none">Física General</h4>
+                        <p class="text-xs text-slate-400 mt-1 pointer-events-none">Mecánica, cinemática, energía y vectores.</p>
                     </div>
 
                     <!-- Tarjeta: Álgebra -->
                     <div onclick="selectSubject('Algebra', this)" class="subject-card group bg-slate-800 p-5 rounded-xl border border-slate-700 hover:border-brand-500 cursor-pointer transition-all shadow-md hover:shadow-brand-500/10 active:scale-[0.98]">
-                        <div class="w-12 h-12 bg-emerald-500/10 text-emerald-400 rounded-lg flex items-center justify-center text-xl font-bold mb-4 group-hover:bg-brand-500 group-hover:text-white transition-colors">
+                        <div class="w-12 h-12 bg-emerald-500/10 text-emerald-400 rounded-lg flex items-center justify-center text-xl font-bold mb-4 group-hover:bg-brand-500 group-hover:text-white transition-colors pointer-events-none">
                             <i class="fa-solid fa-calculator"></i>
                         </div>
-                        <h4 class="font-bold text-white group-hover:text-brand-400 transition-colors">Álgebra Lineal</h4>
-                        <p class="text-xs text-slate-400 mt-1">Matrices, determinantes y sistemas de ecuaciones.</p>
+                        <h4 class="font-bold text-white group-hover:text-brand-400 transition-colors pointer-events-none">Álgebra Lineal</h4>
+                        <p class="text-xs text-slate-400 mt-1 pointer-events-none">Matrices, determinantes y sistemas de ecuaciones.</p>
                     </div>
 
                     <!-- Tarjeta: Examen General -->
                     <div onclick="selectSubject('General', this)" class="subject-card group bg-slate-800 p-5 rounded-xl border-2 border-brand-500/60 bg-brand-500/5 cursor-pointer transition-all shadow-md hover:shadow-brand-500/20 active:scale-[0.98]">
-                        <div class="w-12 h-12 bg-brand-500 text-white rounded-lg flex items-center justify-center text-xl font-bold mb-4 shadow-lg shadow-brand-500/30">
+                        <div class="w-12 h-12 bg-brand-500 text-white rounded-lg flex items-center justify-center text-xl font-bold mb-4 shadow-lg shadow-brand-500/30 pointer-events-none">
                             <i class="fa-solid fa-layer-group"></i>
                         </div>
-                        <h4 class="font-bold text-white group-hover:text-brand-400 transition-colors">Simulación Completa</h4>
-                        <p class="text-xs text-slate-400 mt-1">Mezcla aleatoria de todas las materias disponibles.</p>
+                        <h4 class="font-bold text-white group-hover:text-brand-400 transition-colors pointer-events-none">Simulación Completa</h4>
+                        <p class="text-xs text-slate-400 mt-1 pointer-events-none">Mezcla aleatoria de todas las materias disponibles.</p>
                     </div>
 
                 </div>
