@@ -30,37 +30,14 @@
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
 
-    <!-- LÓGICA JAVASCRIPT -->
-    <script>
-        const sampleQuestions = [
-            {
-                subject: 'Calculo',
-                question: "Calcule el límite: $$\\lim_{x \\to 0} \\frac{\\sin(x)}{x}$$",
-                options: ["0", "1", "Infinito", "No existe"],
-                correct: 1
-            },
-            {
-                subject: 'Calculo',
-                question: "¿Cuál es la derivada de $f(x) = x^3 - 4x + 7$?",
-                options: ["$3x^2 - 4$", "$3x^2 - 4x$", "$x^2 - 4$", "$3x - 4$"],
-                correct: 0
-            },
-            {
-                subject: 'Fisica',
-                question: "Según la segunda ley de Newton, la fuerza es directamente proporcional a:",
-                options: ["La velocidad", "La aceleración", "La posición", "El tiempo"],
-                correct: 1
-            },
-            {
-                subject: 'Algebra',
-                question: "¿Cuál es el determinante de una matriz de $2 \\times 2$ con filas $[a, b]$ y $[c, d]$?",
-                options: ["$ad + bc$", "$ab - cd$", "$ad - bc$", "$a + d - b - c$"],
-                correct: 2
-            }
-        ];
+    <!-- IMPORTAR BANCO DE PREGUNTAS EXTERNO -->
+    <script src="questions.js"></script>
 
+    <!-- LÓGICA JAVASCRIPT DEL SIMULADOR -->
+    <script>
         let selectedSubject = 'General';
         let gameMode = 'exam';
+        let activeQuestions = [];
         let currentQuestionIndex = 0;
         let score = 0;
         let timerInterval = null;
@@ -69,17 +46,23 @@
         document.addEventListener("DOMContentLoaded", () => {
             loadStats();
             renderKaTeX();
+            // Asegurar que la tarjeta por defecto (General) luzca seleccionada al iniciar
+            const defaultCard = document.querySelector('.subject-card.border-2');
+            if (defaultCard) {
+                defaultCard.classList.add('border-brand-500', 'ring-2', 'ring-brand-500', 'bg-brand-500/5');
+            }
         });
 
         function selectSubject(subject, element) {
             selectedSubject = subject;
-            const card = element.closest('.subject-card');
+            // Remover estilos de selección de todas las tarjetas
             document.querySelectorAll('.subject-card').forEach(c => {
-                c.classList.remove('border-brand-500', 'ring-2', 'ring-brand-500', 'bg-brand-500/10');
+                c.classList.remove('border-brand-500', 'ring-2', 'ring-brand-500', 'bg-brand-500/10', 'bg-brand-500/5', 'border-2');
+                c.classList.add('border', 'border-slate-200', 'dark:border-slate-700');
             });
-            if (card) {
-                card.classList.add('border-brand-500', 'ring-2', 'ring-brand-500', 'bg-brand-500/10');
-            }
+            // Aplicar estilos a la tarjeta seleccionada
+            element.classList.remove('border', 'border-slate-200', 'dark:border-slate-700');
+            element.classList.add('border-2', 'border-brand-500', 'ring-2', 'ring-brand-500', 'bg-brand-500/10');
         }
 
         function updateModeSelection() {
@@ -96,9 +79,35 @@
 
         function startExam() {
             updateModeSelection();
+            
+            // Cargar y filtrar preguntas según la materia seleccionada
+            if (selectedSubject === 'General') {
+                activeQuestions = [];
+                for (let mat in questionBank) {
+                    activeQuestions = activeQuestions.concat(questionBank[mat]);
+                }
+                activeQuestions.sort(() => Math.random() - 0.5);
+            } else {
+                activeQuestions = [...(questionBank[selectedSubject] || [])];
+                activeQuestions.sort(() => Math.random() - 0.5);
+            }
+
+            if (activeQuestions.length === 0) {
+                alert("No hay preguntas disponibles para esta materia todavía.");
+                return;
+            }
+
             document.getElementById('dashboardSection').classList.add('hidden');
             document.getElementById('simulatorSection').classList.remove('hidden');
-            document.getElementById('subjectBadge').innerText = selectedSubject;
+            
+            // Traducir nombre de materia para la insignia superior
+            let subjectTitle = selectedSubject;
+            if (selectedSubject === 'Calculo') subjectTitle = 'Cálculo Diferencial';
+            if (selectedSubject === 'Fisica') subjectTitle = 'Física General';
+            if (selectedSubject === 'Algebra') subjectTitle = 'Álgebra Lineal';
+            if (selectedSubject === 'General') subjectTitle = 'Simulación Completa';
+            
+            document.getElementById('subjectBadge').innerText = subjectTitle;
             
             currentQuestionIndex = 0;
             score = 0;
@@ -106,10 +115,14 @@
         }
 
         function loadQuestion() {
-            const q = sampleQuestions[currentQuestionIndex % sampleQuestions.length];
-            document.getElementById('questionProgress').innerText = `Pregunta ${currentQuestionIndex + 1} de 5`;
+            const q = activeQuestions[currentQuestionIndex];
+            document.getElementById('questionProgress').innerText = `Pregunta ${currentQuestionIndex + 1} de ${activeQuestions.length}`;
             document.getElementById('scoreTracker').innerText = `Puntuación: ${score}`;
             document.getElementById('questionText').innerHTML = q.question;
+
+            const expContainer = document.getElementById('explanationContainer');
+            expContainer.classList.add('hidden');
+            expContainer.innerHTML = '';
 
             const container = document.getElementById('optionsContainer');
             container.innerHTML = '';
@@ -118,7 +131,7 @@
                 const btn = document.createElement('button');
                 btn.className = "w-full text-left p-4 rounded-xl bg-white dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-600 transition-colors text-slate-800 dark:text-slate-200 font-medium flex items-center justify-between shadow-sm";
                 btn.innerHTML = `<span>${opt}</span><i class="fa-regular fa-circle text-slate-400 dark:text-slate-500"></i>`;
-                btn.onclick = () => checkAnswer(index, q.correct);
+                btn.onclick = () => checkAnswer(index, q.correct, btn);
                 container.appendChild(btn);
             });
 
@@ -135,7 +148,7 @@
                     document.getElementById('timer').innerText = `00:${timeLeft < 10 ? '0' : ''}${timeLeft}`;
                     if (timeLeft <= 0) {
                         clearInterval(timerInterval);
-                        nextQuestion();
+                        autoAdvance();
                     }
                 }, 1000);
             } else {
@@ -143,21 +156,51 @@
             }
         }
 
-        function checkAnswer(selected, correct) {
+        function checkAnswer(selected, correct, btnElement) {
             clearInterval(timerInterval);
+            const q = activeQuestions[currentQuestionIndex];
+            const buttons = document.querySelectorAll('#optionsContainer button');
+
+            buttons.forEach(b => b.disabled = true);
+
             if (selected === correct) {
                 score += 100;
+                btnElement.classList.remove('bg-white', 'dark:bg-slate-700/50', 'border-slate-200', 'dark:border-slate-600');
+                btnElement.classList.add('bg-emerald-500/20', 'border-emerald-500', 'text-emerald-300');
+                btnElement.querySelector('i').className = "fa-solid fa-circle-check text-emerald-500";
+            } else {
+                btnElement.classList.remove('bg-white', 'dark:bg-slate-700/50', 'border-slate-200', 'dark:border-slate-600');
+                btnElement.classList.add('bg-rose-500/20', 'border-rose-500', 'text-rose-300');
+                btnElement.querySelector('i').className = "fa-solid fa-circle-xmark text-rose-500";
+
+                buttons[correct].classList.remove('bg-white', 'dark:bg-slate-700/50', 'border-slate-200', 'dark:border-slate-600');
+                buttons[correct].classList.add('bg-emerald-500/20', 'border-emerald-500', 'text-emerald-300');
+                buttons[correct].querySelector('i').className = "fa-solid fa-circle-check text-emerald-500";
             }
+
+            if (q.explanation) {
+                const expContainer = document.getElementById('explanationContainer');
+                expContainer.innerHTML = `<h5 class="font-bold text-brand-400 mb-1"><i class="fa-solid fa-lightbulb mr-2"></i>Explicación:</h5><p class="text-sm text-slate-300">${q.explanation}</p>`;
+                expContainer.classList.remove('hidden');
+                renderKaTeX();
+            }
+
+            setTimeout(() => {
+                nextQuestion();
+            }, 3500);
+        }
+
+        function autoAdvance() {
             nextQuestion();
         }
 
         function nextQuestion() {
             currentQuestionIndex++;
-            if (currentQuestionIndex < 5) {
+            if (currentQuestionIndex < activeQuestions.length) {
                 loadQuestion();
             } else {
                 saveExamResult();
-                alert(`¡Examen finalizado! Tu puntuación fue de: ${score} puntos.`);
+                alert(`¡Simulación finalizada! Tu puntuación total fue de: ${score} puntos.`);
                 showDashboard();
             }
         }
@@ -184,9 +227,12 @@
                 localStorage.setItem('simu_last_date', today);
             }
 
+            const maxPossibleScore = activeQuestions.length * 100;
+            const currentAccuracy = maxPossibleScore > 0 ? Math.round((score / maxPossibleScore) * 100) : 0;
+
             localStorage.setItem('simu_exams', exams);
             localStorage.setItem('simu_streak', streak);
-            localStorage.setItem('simu_avg', Math.min(100, Math.round((score / 500) * 100)));
+            localStorage.setItem('simu_avg', currentAccuracy);
         }
 
         function renderKaTeX() {
@@ -326,7 +372,7 @@
                     </div>
 
                     <!-- Tarjeta: Examen General -->
-                    <div onclick="selectSubject('General', this)" class="subject-card group bg-white dark:bg-slate-800 p-5 rounded-xl border-2 border-brand-500/60 bg-brand-500/5 cursor-pointer transition-all shadow-sm hover:shadow-brand-500/20 active:scale-[0.98]">
+                    <div onclick="selectSubject('General', this)" class="subject-card group bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-brand-500 cursor-pointer transition-all shadow-sm hover:shadow-brand-500/20 active:scale-[0.98]">
                         <div class="w-12 h-12 bg-brand-500 text-white rounded-lg flex items-center justify-center text-xl font-bold mb-4 shadow-lg shadow-brand-500/30 pointer-events-none">
                             <i class="fa-solid fa-layer-group"></i>
                         </div>
@@ -416,6 +462,11 @@
                 <!-- Opciones -->
                 <div id="optionsContainer" class="grid grid-cols-1 gap-3 pt-2">
                     <!-- Opciones inyectadas dinámicamente con JS -->
+                </div>
+
+                <!-- Caja de Explicación Paso a Paso -->
+                <div id="explanationContainer" class="hidden p-4 rounded-xl bg-slate-100 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 mt-4 animate-fade-in">
+                    <!-- Se llena dinámicamente -->
                 </div>
             </div>
         </section>
