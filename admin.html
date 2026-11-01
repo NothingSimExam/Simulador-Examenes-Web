@@ -30,15 +30,17 @@
 
     <script>
         // CONFIGURA TUS CREDENCIALES DE SUPABASE AQUÍ TAMBIÉN
-        const SUPABASE_URL = 'NEXT_PUBLIC_SUPABASE_URL=https://xuvdygkybnionzhccwuu.supabase.co'; 
-        const SUPABASE_KEY = 'NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_q2UDYq_12-GQr3z7KpX1OA_JU1pMQV6';
+        const SUPABASE_URL = 'https://xuvdygkybnionzhccwuu.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_q2UDYq_12-GQr3z7KpX10A_JU1pMQV6';
         
         // Inicializamos el cliente de forma global segura
         let supabaseClient;
 
-        document.addEventListener("DOMContentLoaded", () => {
-            supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-        });
+document.addEventListener("DOMContentLoaded", () => {
+    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    loadStats();
+    renderKaTeX();
+});
 
         async function guardarPregunta(event) {
             event.preventDefault();
