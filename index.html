@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simulador de Exámenes</title>
+    <title>SimuExam - Plataforma de Preparación</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -30,16 +30,17 @@
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
 
-    <!-- IMPORTAR MÓDULOS DE PREGUNTAS POR MATERIA -->
-    <script src="calculo_dif.js"></script>
-    <script src="calculo_int.js"></script>
-    <script src="fisica.js"></script>
-    <script src="algebra.js"></script>
-    <!-- CENTRALIZADOR -->
-    <script src="questions.js"></script>
+    <!-- Supabase JS Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-    <!-- LÓGICA JAVASCRIPT -->
+    <!-- LÓGICA JAVASCRIPT CON SUPABASE -->
     <script>
+        // CONFIGURA TUS CREDENCIALES DE SUPABASE AQUÍ
+        const SUPABASE_URL = 'TUS_PROJECT_URL_AQUÍ'; 
+        const SUPABASE_KEY = 'TU_PUBLISHABLE_KEY_AQUÍ';
+        
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
         let selectedSubject = '';
         let gameMode = 'practice';
         let activeQuestions = [];
@@ -74,39 +75,49 @@
             }
         }
 
-        function startSession() {
+        async function startSession() {
             closeModal();
             
-            if (selectedSubject === 'General') {
-                activeQuestions = [];
-                for (let mat in questionBank) {
-                    activeQuestions = activeQuestions.concat(questionBank[mat]);
+            // Cargar preguntas desde Supabase
+            try {
+                let query = supabaseClient.from('questions').select('*');
+                
+                if (selectedSubject !== 'General') {
+                    query = query.eq('subject', selectedSubject);
                 }
-            } else {
-                activeQuestions = [...(questionBank[selectedSubject] || [])];
+
+                const { data, error } = await query;
+
+                if (error) throw error;
+
+                activeQuestions = data || [];
+                activeQuestions.sort(() => Math.random() - 0.5);
+
+                if (activeQuestions.length === 0) {
+                    alert("Aún no hay ejercicios registrados en la base de datos para esta materia.");
+                    return;
+                }
+
+                document.getElementById('dashboardSection').classList.add('hidden');
+                document.getElementById('simulatorSection').classList.remove('hidden');
+
+                let titles = {
+                    'CalculoDif': 'Cálculo Diferencial',
+                    'CalculoInt': 'Cálculo Integral',
+                    'Fisica': 'Física General',
+                    'Algebra': 'Álgebra Lineal',
+                    'General': 'Simulación Completa'
+                };
+                document.getElementById('subjectBadge').innerText = titles[selectedSubject] || 'Estudio';
+
+                currentQuestionIndex = 0;
+                score = 0;
+                loadQuestion();
+
+            } catch (err) {
+                console.error("Error al conectar con Supabase:", err.message);
+                alert("Hubo un problema al cargar las preguntas desde la base de datos.");
             }
-            activeQuestions.sort(() => Math.random() - 0.5);
-
-            if (activeQuestions.length === 0) {
-                alert("Pronto agregaremos ejercicios para esta materia.");
-                return;
-            }
-
-            document.getElementById('dashboardSection').classList.add('hidden');
-            document.getElementById('simulatorSection').classList.remove('hidden');
-
-            let titles = {
-                'CalculoDif': 'Cálculo Diferencial',
-                'CalculoInt': 'Cálculo Integral',
-                'Fisica': 'Física General',
-                'Algebra': 'Álgebra Lineal',
-                'General': 'Simulación Completa'
-            };
-            document.getElementById('subjectBadge').innerText = titles[selectedSubject] || 'Estudio';
-
-            currentQuestionIndex = 0;
-            score = 0;
-            loadQuestion();
         }
 
         function showDashboard() {
