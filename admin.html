@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel Administrador - SimuExam</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0f9ff',
+                            500: '#0284c7',
+                            600: '#0369a1',
+                            900: '#0c4a6e',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome para Iconos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Supabase JS Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <script>
+        // CONFIGURA TUS CREDENCIALES DE SUPABASE AQUÍ TAMBIÉN
+        const SUPABASE_URL = 'TUS_PROJECT_URL_AQUÍ'; 
+        const SUPABASE_KEY = 'TU_PUBLISHABLE_KEY_AQUÍ';
+        
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        async function guardarPregunta(event) {
+            event.preventDefault();
+
+            const subject = document.getElementById('subject').value;
+            const difficulty = document.getElementById('difficulty').value;
+            const question = document.getElementById('question').value;
+            
+            // Recoger opciones
+            const opt1 = document.getElementById('opt1').value;
+            const opt2 = document.getElementById('opt2').value;
+            const opt3 = document.getElementById('opt3').value;
+            const opt4 = document.getElementById('opt4').value;
+            const options = [opt1, opt2, opt3, opt4];
+
+            const correct = parseInt(document.getElementById('correct').value);
+            
+            // Fórmulas separadas por salto de línea
+            const formulasRaw = document.getElementById('formulas').value;
+            const formulas = formulasRaw ? formulasRaw.split('\n').filter(f => f.trim() !== '') : [];
+
+            const explanation = document.getElementById('explanation').value;
+
+            const btnSubmit = document.getElementById('btnSubmit');
+            btnSubmit.disabled = true;
+            btnSubmit.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Guardando en Supabase...';
+
+            try {
+                const { data, error } = await supabaseClient
+                    .from('questions')
+                    .insert([
+                        { subject, difficulty, question, options, correct, formulas, explanation }
+                    ]);
+
+                if (error) throw error;
+
+                alert('¡Pregunta guardada exitosamente en la base de datos!');
+                document.getElementById('questionForm').reset();
+
+            } catch (err) {
+                console.error("Error al guardar:", err.message);
+                alert("Hubo un error al guardar la pregunta: " + err.message);
+            } finally {
+                btnSubmit.disabled = false;
+                btnSubmit.innerHTML = '<i class="fa-solid fa-cloud-arrow-up mr-2"></i> Guardar Pregunta';
+            }
+        }
+    </script>
+</head>
+<body class="bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 min-h-screen font-sans antialiased p-4 md:p-8 flex flex-col justify-between">
+
+    <div class="max-w-3xl w-full mx-auto space-y-8">
+        
+        <!-- Header -->
+        <div class="flex justify-between items-center bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
+            <div>
+                <h1 class="text-2xl font-bold text-slate-900 dark:text-white flex items-center space-x-3">
+                    <i class="fa-solid fa-shield-halved text-brand-500"></i>
+                    <span>Panel Administrador</span>
+                </h1>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Añade nuevos ejercicios al banco de datos en la nube.</p>
+            </div>
+            <a href="index.html" class="px-4 py-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-xl text-xs font-bold transition-all flex items-center space-x-2">
+                <i class="fa-solid fa-arrow-left"></i>
+                <span>Ver Simulador</span>
+            </a>
+        </div>
+
+        <!-- Formulario de Registro -->
+        <form id="questionForm" onsubmit="guardarPregunta(event)" class="bg-white dark:bg-slate-800 p-6 md:p-8 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xl space-y-6">
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Materia -->
+                <div>
+                    <label class="block text-xs font-bold uppercase text-slate-600 dark:text-slate-400 mb-2">Materia</label>
+                    <select id="subject" class="w-full p-3 rounded-xl bg-slate-100 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 text-slate-800 dark:text-slate-200 font-medium focus:outline-none focus:border-brand-500">
+                        <option value="CalculoDif">Cálculo Diferencial</option>
+                        <option value="CalculoInt">Cálculo Integral</option>
+                        <option value="Fisica">Física General</option>
+                        <option value="Algebra">Álgebra Lineal</option>
+                    </select>
+                </div>
+
+                <!-- Dificultad -->
+                <div>
+                    <label class="block text-xs font-bold uppercase text-slate-600 dark:text-slate-400 mb-2">Dificultad</label>
+                    <select id="difficulty" class="w-full p-3 rounded-xl bg-slate-100 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 text-slate-800 dark:text-slate-200 font-medium focus:outline-none focus:border-brand-500">
+                        <option value="basico">Básico</option>
+                        <option value="intermedio">Intermedio</option>
+                        <option value="avanzado">Avanzado</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Enunciado de la Pregunta -->
+            <div>
+                <label class="block text-xs font-bold uppercase text-slate-600 dark:text-slate-400 mb-2">Enunciado de la Pregunta (Soporta LaTeX con $...$ o $$...$$)</label>
+                <textarea id="question" rows="3" required placeholder="Ej: Calcule la derivada de f(x) = x^2..." class="w-full p-3 rounded-xl bg-slate-100 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 text-slate-800 dark:text-slate-200 font-medium focus:outline-none focus:border-brand-500"></textarea>
+            </div>
+
+            <!-- Opciones -->
+            <div class="space-y-3">
+                <label class="block text-xs font-bold uppercase text-slate-600 dark:text-slate-400">Opciones de Respuesta</label>
+                <input type="text" id="opt1" required placeholder="Opción A" class="w-full p-3 rounded-xl bg-slate-100 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 text-slate-800 dark:text-slate-200 text-sm focus:outline-none focus:border-brand-500">
+                <input type="text" id="opt2" required placeholder="Opción B" class="w-full p-3 rounded-xl bg-slate-100 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 text-slate-800 dark:text-slate-200 text-sm focus:outline-none focus:border-brand-500">
+                <input type="text" id="opt3" required placeholder="Opción C" class="w-full p-3 rounded-xl bg-slate-100 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 text-slate-800 dark:text-slate-200 text-sm focus:outline-none focus:border-brand-500">
+                <input type="text" id="opt4" required placeholder="Opción D" class="w-full p-3 rounded-xl bg-slate-100 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 text-slate-800 dark:text-slate-200 text-sm focus:outline-none focus:border-brand-500">
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Respuesta Correcta -->
+                <div>
+                    <label class="block text-xs font-bold uppercase text-slate-600 dark:text-slate-400 mb-2">Índice de la Respuesta Correcta</label>
+                    <select id="correct" class="w-full p-3 rounded-xl bg-slate-100 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 text-slate-800 dark:text-slate-200 font-medium focus:outline-none focus:border-brand-500">
+                        <option value="0">Opción 1 (A)</option>
+                        <option value="1">Opción 2 (B)</option>
+                        <option value="2">Opción 3 (C)</option>
+                        <option value="3">Opción 4 (D)</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Fórmulas de Referencia -->
+            <div>
+                <label class="block text-xs font-bold uppercase text-slate-600 dark:text-slate-400 mb-2">Fórmulas de Referencia (Una por línea)</label>
+                <textarea id="formulas" rows="2" placeholder="$$\int x^n dx = \frac{x^{n+1}}{n+1} + C$$" class="w-full p-3 rounded-xl bg-slate-100 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 text-slate-800 dark:text-slate-200 text-sm font-mono focus:outline-none focus:border-brand-500"></textarea>
+            </div>
+
+            <!-- Explicación vertical -->
+            <div>
+                <label class="block text-xs font-bold uppercase text-slate-600 dark:text-slate-400 mb-2">Procedimiento Detallado (Usa etiquetas HTML como &lt;br&gt;)</label>
+                <textarea id="explanation" rows="3" required placeholder="1. Identificamos la regla...<br>2. Sustituimos..." class="w-full p-3 rounded-xl bg-slate-100 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 text-slate-800 dark:text-slate-200 text-sm focus:outline-none focus:border-brand-500"></textarea>
+            </div>
+
+            <!-- Botón Enviar -->
+            <button type="submit" id="btnSubmit" class="w-full py-4 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl shadow-lg shadow-brand-500/30 transition-all flex items-center justify-center space-x-2">
+                <i class="fa-solid fa-cloud-arrow-up"></i>
+                <span>Guardar Pregunta</span>
+            </button>
+
+        </form>
+
+    </div>
+
+    <footer class="text-center py-4 text-xs text-slate-500 border-t border-slate-200 dark:border-slate-800 mt-8">
+        SimuExam Admin Panel &copy; 2026
+    </footer>
+
+</body>
+</html>
