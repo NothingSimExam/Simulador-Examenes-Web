@@ -30,7 +30,12 @@
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
 
-    <!-- IMPORTAR BANCO DE PREGUNTAS -->
+    <!-- IMPORTAR MÓDULOS DE PREGUNTAS POR MATERIA -->
+    <script src="calculo_dif.js"></script>
+    <script src="calculo_int.js"></script>
+    <script src="fisica.js"></script>
+    <script src="algebra.js"></script>
+    <!-- CENTRALIZADOR -->
     <script src="questions.js"></script>
 
     <!-- LÓGICA JAVASCRIPT -->
@@ -117,7 +122,6 @@
             document.getElementById('scoreTracker').innerText = `Puntuación: ${score}`;
             document.getElementById('questionText').innerHTML = q.question;
 
-            // Ocultar explicaciones previas
             const expContainer = document.getElementById('explanationContainer');
             expContainer.classList.add('hidden');
             expContainer.innerHTML = '';
@@ -175,7 +179,6 @@
                 buttons[correct].querySelector('i').className = "fa-solid fa-circle-check text-emerald-500";
             }
 
-            // Modo práctica: Botón de anuncio para ver formulario y explicación vertical
             if (gameMode === 'practice' && (q.formulas || q.explanation)) {
                 const expContainer = document.getElementById('explanationContainer');
                 let formulasHTML = '';
@@ -209,7 +212,6 @@
                                 ${q.explanation}
                             </div>
                         </div>
-                        <!-- Botón para pasar al siguiente ejercicio una vez visto el procedimiento -->
                         <div class="pt-2 flex justify-end">
                             <button onclick="nextQuestion()" class="px-6 py-3 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl shadow-lg transition-all flex items-center space-x-2">
                                 <span>Siguiente Pregunta</span>
