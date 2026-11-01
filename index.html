@@ -33,10 +33,10 @@
     <!-- IMPORTAR BANCO DE PREGUNTAS EXTERNO -->
     <script src="questions.js"></script>
 
-    <!-- LÓGICA JAVASCRIPT DEL SIMULADOR -->
+    <!-- LÓGICA JAVASCRIPT -->
     <script>
-        let selectedSubject = 'General';
-        let gameMode = 'exam';
+        let selectedSubject = '';
+        let gameMode = 'practice'; // Por defecto iniciamos en práctica como pediste
         let activeQuestions = [];
         let currentQuestionIndex = 0;
         let score = 0;
@@ -46,28 +46,65 @@
         document.addEventListener("DOMContentLoaded", () => {
             loadStats();
             renderKaTeX();
-            // Asegurar que la tarjeta por defecto (General) luzca seleccionada al iniciar
-            const defaultCard = document.querySelector('.subject-card.border-2');
-            if (defaultCard) {
-                defaultCard.classList.add('border-brand-500', 'ring-2', 'ring-brand-500', 'bg-brand-500/5');
-            }
         });
 
-        function selectSubject(subject, element) {
-            selectedSubject = subject;
-            // Remover estilos de selección de todas las tarjetas
-            document.querySelectorAll('.subject-card').forEach(c => {
-                c.classList.remove('border-brand-500', 'ring-2', 'ring-brand-500', 'bg-brand-500/10', 'bg-brand-500/5', 'border-2');
-                c.classList.add('border', 'border-slate-200', 'dark:border-slate-700');
-            });
-            // Aplicar estilos a la tarjeta seleccionada
-            element.classList.remove('border', 'border-slate-200', 'dark:border-slate-700');
-            element.classList.add('border-2', 'border-brand-500', 'ring-2', 'ring-brand-500', 'bg-brand-500/10');
+        // Al hacer clic en una materia, abrimos directamente el panel de selección de modalidad
+        function chooseSubject(subjectKey, subjectName) {
+            selectedSubject = subjectKey;
+            document.getElementById('modalSubjectTitle').innerText = subjectName;
+            document.getElementById('subjectModal').classList.remove('hidden');
         }
 
-        function updateModeSelection() {
-            const checkedRadio = document.querySelector('input[name="gameMode"]:checked');
-            if (checkedRadio) gameMode = checkedRadio.value;
+        function closeModal() {
+            document.getElementById('subjectModal').classList.add('hidden');
+        }
+
+        function setMode(mode) {
+            gameMode = mode;
+            // Actualizar diseño visual de botones del modal
+            if (mode === 'practice') {
+                document.getElementById('btnModePractice').className = "flex-1 py-3 px-4 rounded-xl font-bold bg-emerald-500 text-white shadow-lg transition-all";
+                document.getElementById('btnModeExam').className = "flex-1 py-3 px-4 rounded-xl font-bold bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 transition-all";
+            } else {
+                document.getElementById('btnModeExam').className = "flex-1 py-3 px-4 rounded-xl font-bold bg-brand-500 text-white shadow-lg transition-all";
+                document.getElementById('btnModePractice').className = "flex-1 py-3 px-4 rounded-xl font-bold bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 transition-all";
+            }
+        }
+
+        function startSession() {
+            closeModal();
+            
+            // Cargar preguntas de la materia seleccionada
+            if (selectedSubject === 'General') {
+                activeQuestions = [];
+                for (let mat in questionBank) {
+                    activeQuestions = activeQuestions.concat(questionBank[mat]);
+                }
+            } else {
+                activeQuestions = [...(questionBank[selectedSubject] || [])];
+            }
+            activeQuestions.sort(() => Math.random() - 0.5);
+
+            if (activeQuestions.length === 0) {
+                alert("Pronto agregaremos ejercicios para esta materia.");
+                return;
+            }
+
+            document.getElementById('dashboardSection').classList.add('hidden');
+            document.getElementById('simulatorSection').classList.remove('hidden');
+
+            let titles = {
+                'CalculoDif': 'Cálculo Diferencial',
+                'CalculoInt': 'Cálculo Integral',
+                'Fisica': 'Física General',
+                'Algebra': 'Álgebra Lineal',
+                'General': 'Simulación Completa'
+            };
+            document.getElementById('subjectBadge').innerText = titles[selectedSubject] || 'Estudio';
+
+            currentQuestionIndex = 0;
+            score = 0;
+            loadQuestion();
         }
 
         function showDashboard() {
@@ -77,49 +114,13 @@
             loadStats();
         }
 
-        function startExam() {
-            updateModeSelection();
-            
-            // Cargar y filtrar preguntas según la materia seleccionada
-            if (selectedSubject === 'General') {
-                activeQuestions = [];
-                for (let mat in questionBank) {
-                    activeQuestions = activeQuestions.concat(questionBank[mat]);
-                }
-                activeQuestions.sort(() => Math.random() - 0.5);
-            } else {
-                activeQuestions = [...(questionBank[selectedSubject] || [])];
-                activeQuestions.sort(() => Math.random() - 0.5);
-            }
-
-            if (activeQuestions.length === 0) {
-                alert("No hay preguntas disponibles para esta materia todavía.");
-                return;
-            }
-
-            document.getElementById('dashboardSection').classList.add('hidden');
-            document.getElementById('simulatorSection').classList.remove('hidden');
-            
-            // Traducir nombre de materia para la insignia superior
-            let subjectTitle = selectedSubject;
-            if (selectedSubject === 'Calculo') subjectTitle = 'Cálculo Diferencial';
-            if (selectedSubject === 'Fisica') subjectTitle = 'Física General';
-            if (selectedSubject === 'Algebra') subjectTitle = 'Álgebra Lineal';
-            if (selectedSubject === 'General') subjectTitle = 'Simulación Completa';
-            
-            document.getElementById('subjectBadge').innerText = subjectTitle;
-            
-            currentQuestionIndex = 0;
-            score = 0;
-            loadQuestion();
-        }
-
         function loadQuestion() {
             const q = activeQuestions[currentQuestionIndex];
             document.getElementById('questionProgress').innerText = `Pregunta ${currentQuestionIndex + 1} de ${activeQuestions.length}`;
             document.getElementById('scoreTracker').innerText = `Puntuación: ${score}`;
             document.getElementById('questionText').innerHTML = q.question;
 
+            // Ocultar explicaciones previas
             const expContainer = document.getElementById('explanationContainer');
             expContainer.classList.add('hidden');
             expContainer.innerHTML = '';
@@ -148,7 +149,7 @@
                     document.getElementById('timer').innerText = `00:${timeLeft < 10 ? '0' : ''}${timeLeft}`;
                     if (timeLeft <= 0) {
                         clearInterval(timerInterval);
-                        autoAdvance();
+                        nextQuestion();
                     }
                 }, 1000);
             } else {
@@ -160,7 +161,6 @@
             clearInterval(timerInterval);
             const q = activeQuestions[currentQuestionIndex];
             const buttons = document.querySelectorAll('#optionsContainer button');
-
             buttons.forEach(b => b.disabled = true);
 
             if (selected === correct) {
@@ -178,20 +178,39 @@
                 buttons[correct].querySelector('i').className = "fa-solid fa-circle-check text-emerald-500";
             }
 
-            if (q.explanation) {
+            // Si estamos en modo práctica, mostramos el botón para ver el anuncio y desbloquear el procedimiento
+            if (gameMode === 'practice' && q.explanation) {
                 const expContainer = document.getElementById('explanationContainer');
-                expContainer.innerHTML = `<h5 class="font-bold text-brand-400 mb-1"><i class="fa-solid fa-lightbulb mr-2"></i>Explicación:</h5><p class="text-sm text-slate-300">${q.explanation}</p>`;
+                expContainer.innerHTML = `
+                    <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+                        <div>
+                            <h5 class="font-bold text-amber-400"><i class="fa-solid fa-lock mr-2"></i>¿Dudas con el procedimiento?</h5>
+                            <p class="text-xs text-slate-400 mt-0.5">Mira un breve anuncio para desbloquear la solución paso a paso.</p>
+                        </div>
+                        <button onclick="watchAdToUnlock()" class="px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-xl shadow-md transition-all flex items-center space-x-2 text-sm whitespace-nowrap">
+                            <i class="fa-solid fa-play"></i>
+                            <span>Ver anuncio y desbloquear</span>
+                        </button>
+                    </div>
+                    <div id="unlockedExplanation" class="hidden mt-4 pt-3 border-t border-slate-700 text-sm text-slate-200 animate-fade-in">
+                        <span class="font-bold text-brand-400">Solución detallada:</span> ${q.explanation}
+                    </div>
+                `;
                 expContainer.classList.remove('hidden');
-                renderKaTeX();
+            } else {
+                // En modo examen pasamos directo tras unos segundos
+                setTimeout(() => { nextQuestion(); }, 3000);
             }
-
-            setTimeout(() => {
-                nextQuestion();
-            }, 3500);
         }
 
-        function autoAdvance() {
-            nextQuestion();
+        // Simulación del sistema de visualización de anuncio para desbloquear
+        function watchAdToUnlock() {
+            // Aquí puedes conectar posteriormente tu SDK de anuncios (Google AdSense, AdMob, etc.)
+            alert("Reproduciendo anuncio de patrocinador...");
+            setTimeout(() => {
+                document.getElementById('unlockedExplanation').classList.remove('hidden');
+                renderKaTeX();
+            }, 1000);
         }
 
         function nextQuestion() {
@@ -200,7 +219,7 @@
                 loadQuestion();
             } else {
                 saveExamResult();
-                alert(`¡Simulación finalizada! Tu puntuación total fue de: ${score} puntos.`);
+                alert(`¡Sesión finalizada! Puntuación obtenida: ${score} puntos.`);
                 showDashboard();
             }
         }
@@ -275,13 +294,13 @@
                 </div>
             </div>
 
-            <!-- Racha y Opciones de Navbar -->
+            <!-- Racha y Opciones -->
             <div class="flex items-center space-x-4">
-                <div class="bg-slate-100 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600/50 px-3 py-1.5 rounded-full flex items-center space-x-2 text-sm font-semibold text-amber-600 dark:text-amber-400" title="Tu racha de estudio diaria">
+                <div class="bg-slate-100 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600/50 px-3 py-1.5 rounded-full flex items-center space-x-2 text-sm font-semibold text-amber-600 dark:text-amber-400">
                     <i class="fa-solid fa-fire text-amber-500 animate-pulse"></i>
                     <span id="streakCount">0 días</span>
                 </div>
-                <button id="themeToggleBtn" onclick="toggleTheme()" class="p-2 rounded-lg bg-slate-100 dark:bg-slate-700/50 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors">
+                <button onclick="toggleTheme()" class="p-2 rounded-lg bg-slate-100 dark:bg-slate-700/50 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors">
                     <i id="themeIcon" class="fa-solid fa-sun text-amber-400"></i>
                 </button>
             </div>
@@ -291,21 +310,17 @@
     <!-- Contenido Principal -->
     <main class="flex-1 max-w-6xl w-full mx-auto px-4 py-8">
 
-        <!-- DASHBOARD / MENÚ PRINCIPAL -->
+        <!-- DASHBOARD -->
         <section id="dashboardSection" class="space-y-8 animate-fade-in">
-            <!-- Saludo e Resumen -->
             <div class="bg-gradient-to-r from-white via-white to-slate-100 dark:from-slate-800 dark:via-slate-800 dark:to-slate-800/60 p-6 md:p-8 rounded-2xl border border-slate-200 dark:border-slate-700/60 shadow-xl relative overflow-hidden">
-                <div class="absolute -right-10 -bottom-10 opacity-5 dark:opacity-10 text-brand-500 text-9xl pointer-events-none">
-                    <i class="fa-solid fa-brain"></i>
-                </div>
                 <div class="relative z-10 max-w-2xl">
                     <span class="bg-brand-500/10 dark:bg-brand-500/20 text-brand-600 dark:text-brand-400 text-xs font-semibold px-3 py-1 rounded-full uppercase tracking-wider">Dashboard</span>
-                    <h2 class="text-2xl md:text-3xl font-bold mt-2 text-slate-900 dark:text-white">¡Listo para practicar hoy!</h2>
-                    <p class="text-slate-600 dark:text-slate-400 text-sm md:text-base mt-2">Selecciona la materia y la modalidad en la que deseas poner a prueba tus conocimientos para el examen.</p>
+                    <h2 class="text-2xl md:text-3xl font-bold mt-2 text-slate-900 dark:text-white">¡Selecciona una materia para comenzar!</h2>
+                    <p class="text-slate-600 dark:text-slate-400 text-sm md:text-base mt-2">Haz clic directo en cualquier área de estudio para elegir tu modalidad de práctica o examen.</p>
                 </div>
             </div>
 
-            <!-- Tarjetas de Estadísticas Rápidas -->
+            <!-- Estadísticas -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div class="bg-white dark:bg-slate-800/60 p-4 rounded-xl border border-slate-200 dark:border-slate-700/50 flex items-center space-x-4 shadow-sm">
                     <div class="bg-blue-500/10 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 p-3 rounded-lg text-2xl">
@@ -336,102 +351,84 @@
                 </div>
             </div>
 
-            <!-- Selección de Materia -->
+            <!-- Selección de Materias Directa -->
             <div>
                 <h3 class="text-lg font-bold text-slate-800 dark:text-slate-200 mb-4 flex items-center space-x-2">
                     <i class="fa-solid fa-book-bookmark text-brand-500"></i>
-                    <span>Selecciona una Materia</span>
+                    <span>Materias Disponibles</span>
                 </h3>
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     
-                    <!-- Tarjeta: Cálculo -->
-                    <div onclick="selectSubject('Calculo', this)" class="subject-card group bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-brand-500 cursor-pointer transition-all shadow-sm hover:shadow-brand-500/10 active:scale-[0.98]">
-                        <div class="w-12 h-12 bg-blue-500/10 text-blue-500 dark:text-blue-400 rounded-lg flex items-center justify-center text-xl font-bold mb-4 group-hover:bg-brand-500 group-hover:text-white transition-colors pointer-events-none">
+                    <!-- Cálculo Diferencial -->
+                    <div onclick="chooseSubject('CalculoDif', 'Cálculo Diferencial')" class="group bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-brand-500 cursor-pointer transition-all shadow-sm hover:shadow-brand-500/10 active:scale-[0.98]">
+                        <div class="w-12 h-12 bg-blue-500/10 text-blue-500 rounded-lg flex items-center justify-center text-xl font-bold mb-4 group-hover:bg-brand-500 group-hover:text-white transition-colors">
                             <i class="fa-solid fa-square-root-variable"></i>
                         </div>
-                        <h4 class="font-bold text-slate-900 dark:text-white group-hover:text-brand-500 dark:group-hover:text-brand-400 transition-colors pointer-events-none">Cálculo Diferencial</h4>
-                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 pointer-events-none">Límites, derivadas, integrales y funciones.</p>
+                        <h4 class="font-bold text-slate-900 dark:text-white group-hover:text-brand-500 transition-colors">Cálculo Diferencial</h4>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Límites, derivadas y funciones.</p>
                     </div>
 
-                    <!-- Tarjeta: Física -->
-                    <div onclick="selectSubject('Fisica', this)" class="subject-card group bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-brand-500 cursor-pointer transition-all shadow-sm hover:shadow-brand-500/10 active:scale-[0.98]">
-                        <div class="w-12 h-12 bg-purple-500/10 text-purple-500 dark:text-purple-400 rounded-lg flex items-center justify-center text-xl font-bold mb-4 group-hover:bg-brand-500 group-hover:text-white transition-colors pointer-events-none">
+                    <!-- Cálculo Integral -->
+                    <div onclick="chooseSubject('CalculoInt', 'Cálculo Integral')" class="group bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-brand-500 cursor-pointer transition-all shadow-sm hover:shadow-brand-500/10 active:scale-[0.98]">
+                        <div class="w-12 h-12 bg-indigo-500/10 text-indigo-500 rounded-lg flex items-center justify-center text-xl font-bold mb-4 group-hover:bg-brand-500 group-hover:text-white transition-colors">
+                            <i class="fa-solid fa-integral"></i>
+                        </div>
+                        <h4 class="font-bold text-slate-900 dark:text-white group-hover:text-brand-500 transition-colors">Cálculo Integral</h4>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Antiderivadas y métodos de integración.</p>
+                    </div>
+
+                    <!-- Física -->
+                    <div onclick="chooseSubject('Fisica', 'Física General')" class="group bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-brand-500 cursor-pointer transition-all shadow-sm hover:shadow-brand-500/10 active:scale-[0.98]">
+                        <div class="w-12 h-12 bg-purple-500/10 text-purple-500 rounded-lg flex items-center justify-center text-xl font-bold mb-4 group-hover:bg-brand-500 group-hover:text-white transition-colors">
                             <i class="fa-solid fa-atom"></i>
                         </div>
-                        <h4 class="font-bold text-slate-900 dark:text-white group-hover:text-brand-500 dark:group-hover:text-brand-400 transition-colors pointer-events-none">Física General</h4>
-                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 pointer-events-none">Mecánica, cinemática, energía y vectores.</p>
+                        <h4 class="font-bold text-slate-900 dark:text-white group-hover:text-brand-500 transition-colors">Física General</h4>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Leyes de Newton y vectores.</p>
                     </div>
 
-                    <!-- Tarjeta: Álgebra -->
-                    <div onclick="selectSubject('Algebra', this)" class="subject-card group bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-brand-500 cursor-pointer transition-all shadow-sm hover:shadow-brand-500/10 active:scale-[0.98]">
-                        <div class="w-12 h-12 bg-emerald-500/10 text-emerald-500 dark:text-emerald-400 rounded-lg flex items-center justify-center text-xl font-bold mb-4 group-hover:bg-brand-500 group-hover:text-white transition-colors pointer-events-none">
+                    <!-- Álgebra -->
+                    <div onclick="chooseSubject('Algebra', 'Álgebra Lineal')" class="group bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-brand-500 cursor-pointer transition-all shadow-sm hover:shadow-brand-500/10 active:scale-[0.98]">
+                        <div class="w-12 h-12 bg-emerald-500/10 text-emerald-500 rounded-lg flex items-center justify-center text-xl font-bold mb-4 group-hover:bg-brand-500 group-hover:text-white transition-colors">
                             <i class="fa-solid fa-calculator"></i>
                         </div>
-                        <h4 class="font-bold text-slate-900 dark:text-white group-hover:text-brand-500 dark:group-hover:text-brand-400 transition-colors pointer-events-none">Álgebra Lineal</h4>
-                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 pointer-events-none">Matrices, determinantes y sistemas de ecuaciones.</p>
-                    </div>
-
-                    <!-- Tarjeta: Examen General -->
-                    <div onclick="selectSubject('General', this)" class="subject-card group bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-brand-500 cursor-pointer transition-all shadow-sm hover:shadow-brand-500/20 active:scale-[0.98]">
-                        <div class="w-12 h-12 bg-brand-500 text-white rounded-lg flex items-center justify-center text-xl font-bold mb-4 shadow-lg shadow-brand-500/30 pointer-events-none">
-                            <i class="fa-solid fa-layer-group"></i>
-                        </div>
-                        <h4 class="font-bold text-slate-900 dark:text-white group-hover:text-brand-500 dark:group-hover:text-brand-400 transition-colors pointer-events-none">Simulación Completa</h4>
-                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 pointer-events-none">Mezcla aleatoria de todas las materias disponibles.</p>
+                        <h4 class="font-bold text-slate-900 dark:text-white group-hover:text-brand-500 transition-colors">Álgebra Lineal</h4>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Matrices y determinantes.</p>
                     </div>
 
                 </div>
-            </div>
-
-            <!-- Selección de Modo de Juego -->
-            <div>
-                <h3 class="text-lg font-bold text-slate-800 dark:text-slate-200 mb-4 flex items-center space-x-2">
-                    <i class="fa-solid fa-gamepad text-brand-500"></i>
-                    <span>Modo de Estudio</span>
-                </h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    
-                    <label class="cursor-pointer">
-                        <input type="radio" name="gameMode" value="exam" checked class="peer sr-only" onchange="updateModeSelection()">
-                        <div class="p-4 rounded-xl bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 peer-checked:border-brand-500 peer-checked:bg-brand-500/5 transition-all flex items-start space-x-3 shadow-sm">
-                            <div class="text-brand-500 mt-1 text-lg">
-                                <i class="fa-solid fa-stopwatch"></i>
-                            </div>
-                            <div>
-                                <h4 class="font-bold text-slate-900 dark:text-white">Modo Examen (Con Tiempo)</h4>
-                                <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Ponte a prueba con temporizador estricto por pregunta. Ideal para simular el día real del examen.</p>
-                            </div>
-                        </div>
-                    </label>
-
-                    <label class="cursor-pointer">
-                        <input type="radio" name="gameMode" value="practice" class="peer sr-only" onchange="updateModeSelection()">
-                        <div class="p-4 rounded-xl bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 peer-checked:border-brand-500 peer-checked:bg-brand-500/5 transition-all flex items-start space-x-3 shadow-sm">
-                            <div class="text-emerald-500 mt-1 text-lg">
-                                <i class="fa-solid fa-book-open"></i>
-                            </div>
-                            <div>
-                                <h4 class="font-bold text-slate-900 dark:text-white">Modo Práctica (Sin Tiempo)</h4>
-                                <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Resuelve a tu propio ritmo con tiempo ilimitado. Perfecto para repasar conceptos complejos.</p>
-                            </div>
-                        </div>
-                    </label>
-
-                </div>
-            </div>
-
-            <!-- Botón de Inicio -->
-            <div class="pt-4 flex justify-center">
-                <button onclick="startExam()" class="w-full sm:w-auto px-8 py-4 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl shadow-lg shadow-brand-500/30 transition-all transform hover:-translate-y-0.5 active:translate-y-0 text-lg flex items-center justify-center space-x-3">
-                    <span>Iniciar Examen</span>
-                    <i class="fa-solid fa-arrow-right"></i>
-                </button>
             </div>
         </section>
 
-        <!-- SIMULADOR (OCULTO POR DEFECTO) -->
+        <!-- MODAL DE ELECCIÓN DE MODO (Se abre al hacer clic en cualquier materia) -->
+        <div id="subjectModal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+            <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-6 animate-fade-in">
+                <div class="flex justify-between items-center">
+                    <h3 id="modalSubjectTitle" class="text-xl font-bold text-slate-900 dark:text-white">Materia</h3>
+                    <button onclick="closeModal()" class="text-slate-400 hover:text-slate-200"><i class="fa-solid fa-xmark text-lg"></i></button>
+                </div>
+                <p class="text-xs text-slate-500 dark:text-slate-400">Selecciona cómo deseas estudiar esta materia el día de hoy:</p>
+                
+                <!-- Botones de Modo (Práctica primero) -->
+                <div class="flex gap-3">
+                    <button id="btnModePractice" onclick="setMode('practice')" class="flex-1 py-3 px-4 rounded-xl font-bold bg-emerald-500 text-white shadow-lg transition-all flex flex-col items-center justify-center space-y-1">
+                        <i class="fa-solid fa-book-open"></i>
+                        <span class="text-xs">Modo Práctica</span>
+                    </button>
+                    <button id="btnModeExam" onclick="setMode('exam')" class="flex-1 py-3 px-4 rounded-xl font-bold bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 transition-all flex flex-col items-center justify-center space-y-1">
+                        <i class="fa-solid fa-stopwatch"></i>
+                        <span class="text-xs">Modo Examen</span>
+                    </button>
+                </div>
+
+                <button onclick="startSession()" class="w-full py-4 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl shadow-lg shadow-brand-500/30 transition-all flex items-center justify-center space-x-2">
+                    <span>Comenzar Ahora</span>
+                    <i class="fa-solid fa-arrow-right"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- SIMULADOR -->
         <section id="simulatorSection" class="hidden space-y-6">
-            <!-- Barra superior del simulador -->
             <div class="flex flex-wrap justify-between items-center gap-4 bg-white dark:bg-slate-800/80 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
                 <button onclick="showDashboard()" class="text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white flex items-center space-x-2 transition-colors">
                     <i class="fa-solid fa-arrow-left"></i>
@@ -439,8 +436,8 @@
                 </button>
 
                 <div class="flex items-center space-x-4">
-                    <span id="subjectBadge" class="bg-brand-500/10 dark:bg-brand-500/20 text-brand-600 dark:text-brand-400 text-xs font-bold px-3 py-1 rounded-full uppercase">Cálculo</span>
-                    <div id="timerContainer" class="flex items-center space-x-2 text-slate-700 dark:text-slate-300 font-mono font-bold bg-slate-100 dark:bg-slate-900 px-3 py-1 rounded-lg border border-slate-200 dark:border-slate-700">
+                    <span id="subjectBadge" class="bg-brand-500/10 dark:bg-brand-500/20 text-brand-600 dark:text-brand-400 text-xs font-bold px-3 py-1 rounded-full uppercase">Materia</span>
+                    <div id="timerContainer" class="hidden flex items-center space-x-2 text-slate-700 dark:text-slate-300 font-mono font-bold bg-slate-100 dark:bg-slate-900 px-3 py-1 rounded-lg border border-slate-200 dark:border-slate-700">
                         <i class="fa-regular fa-clock text-brand-500"></i>
                         <span id="timer">00:45</span>
                     </div>
@@ -454,26 +451,20 @@
                     <span id="scoreTracker">Puntuación: 0</span>
                 </div>
 
-                <!-- Enunciado -->
                 <div id="questionText" class="text-lg md:text-xl font-medium text-slate-900 dark:text-slate-100">
                     Cargando pregunta...
                 </div>
 
-                <!-- Opciones -->
-                <div id="optionsContainer" class="grid grid-cols-1 gap-3 pt-2">
-                    <!-- Opciones inyectadas dinámicamente con JS -->
-                </div>
+                <div id="optionsContainer" class="grid grid-cols-1 gap-3 pt-2"></div>
 
-                <!-- Caja de Explicación Paso a Paso -->
-                <div id="explanationContainer" class="hidden p-4 rounded-xl bg-slate-100 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 mt-4 animate-fade-in">
-                    <!-- Se llena dinámicamente -->
-                </div>
+                <!-- Caja de Explicación con opción de Anuncio -->
+                <div id="explanationContainer" class="hidden p-4 rounded-xl bg-slate-100 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-700 mt-4"></div>
             </div>
         </section>
 
     </main>
 
-    <footer class="text-center py-4 text-xs text-slate-500 dark:text-slate-500 border-t border-slate-200 dark:border-slate-800">
+    <footer class="text-center py-4 text-xs text-slate-500 border-t border-slate-200 dark:border-slate-800">
         SimuExam Platform &copy; 2026 - Todos los derechos reservados.
     </footer>
 
