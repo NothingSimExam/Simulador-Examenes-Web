@@ -30,13 +30,23 @@
 
     <script>
         // CONFIGURA TUS CREDENCIALES DE SUPABASE AQUÍ TAMBIÉN
-        const SUPABASE_URL = 'TUS_PROJECT_URL_AQUÍ'; 
-        const SUPABASE_KEY = 'TU_PUBLISHABLE_KEY_AQUÍ';
+        const SUPABASE_URL = NEXT_PUBLIC_SUPABASE_URL=https://xuvdygkybnionzhccwuu.supabase.co; 
+        const SUPABASE_KEY = NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_q2UDYq_12-GQr3z7KpX1OA_JU1pMQV6;
         
-        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        // Inicializamos el cliente de forma global segura
+        let supabaseClient;
+
+        document.addEventListener("DOMContentLoaded", () => {
+            supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        });
 
         async function guardarPregunta(event) {
             event.preventDefault();
+
+            if (!supabaseClient) {
+                alert("El cliente de Supabase aún se está inicializando. Espera un segundo e intenta de nuevo.");
+                return;
+            }
 
             const subject = document.getElementById('subject').value;
             const difficulty = document.getElementById('difficulty').value;
